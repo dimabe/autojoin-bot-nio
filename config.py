@@ -57,7 +57,8 @@ class Config(object):
         if not re.match("@.*:.*", self.user_id):
             raise ConfigError("matrix.user_id must be in the form @name:domain")
 
-        self.user_password = self._get_cfg(["matrix", "user_password"], required=True)
+        # self.user_password = self._get_cfg(["matrix", "user_password"], required=True)
+        self.access_token = self._get_cfg(["matrix", "access_token"], required=True)
         self.device_id = self._get_cfg(["matrix", "device_id"], required=True)
         self.device_name = self._get_cfg(["matrix", "device_name"], default="nio-template")
         self.homeserver_url = self._get_cfg(["matrix", "homeserver_url"], required=True)

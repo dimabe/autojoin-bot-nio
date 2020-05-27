@@ -1,3 +1,5 @@
+"""Events callbacks."""
+
 from chat_functions import (
     send_text_to_room,
 )
@@ -8,13 +10,18 @@ from nio import (
 from message_responses import Message
 
 import logging
+import time
+
 logger = logging.getLogger(__name__)
 
 
 class Callbacks(object):
+    """Event callbacks."""
 
     def __init__(self, client, store, config):
         """
+        Class constructor.
+
         Args:
             client (nio.AsyncClient): nio client used to interact with matrix
 
@@ -28,7 +35,7 @@ class Callbacks(object):
         self.command_prefix = config.command_prefix
 
     async def message(self, room, event):
-        """Callback for when a message event is received
+        """Callback for when a message event is received.
 
         Args:
             room (nio.rooms.MatrixRoom): The room the event came from
@@ -42,6 +49,8 @@ class Callbacks(object):
         # Ignore messages from ourselves
         if event.sender == self.client.user:
             return
+        # if event.origin_server_ts < time.time() - 1000:
+        #     return
 
         logger.debug(
             f"Bot message received for room {room.display_name} | "
@@ -50,6 +59,7 @@ class Callbacks(object):
 
         # Process as message if in a public room without command prefix
         has_command_prefix = msg.startswith(self.command_prefix)
+        print(f"ROOM IS GROUP??? {room.is_group}")
         if not has_command_prefix and not room.is_group:
             # General message listener
             message = Message(self.client, self.store, self.config, msg, room, event)
@@ -66,7 +76,7 @@ class Callbacks(object):
         await command.process()
 
     async def invite(self, room, event):
-        """Callback for when an invite is received. Join the room specified in the invite"""
+        """Callback for when an invite is received. Join the room specified in the invite."""
         logger.debug(f"Got invite to {room.room_id} from {event.sender}.")
 
         # Attempt to join 3 times before giving up
@@ -81,3 +91,12 @@ class Callbacks(object):
                 logger.info(f"Joined {room.room_id}")
                 break
 
+    async def joined(self, room, event):
+        """Callback for when the agent accepts the invite."""
+        logger.debug(f"Got room.member.event {event.membership} from {event.sender}.")
+        if event.membership == "join" and event.sender != "@dianabot:localhost":
+            text = f"Welcome {event.sender}"
+            await send_text_to_room(self.client, room.room_id, text)
+        elif event.membership == "leave" and event.sender == "@agent1:localhost":
+            text = f"Agent {event.sender} rejected the invitation"
+            await send_text_to_room(self.client, room.room_id, text)
